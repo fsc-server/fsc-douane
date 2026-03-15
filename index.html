@@ -272,6 +272,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
               <div><label>Nom du personnage</label><input type="text" id="f-name" placeholder="Ex: Katsuro Yami"><div id="name-error" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);border-radius:6px;font-size:12px;color:#e07060">⛔ Ce nom est trop proche d'un personnage principal de Naruto. Choisissez un nom original pour votre personnage.</div></div>
               <div><label>Village souhaité</label>
                 <select id="f-village"><option value="">— Choisir —</option><option value="Konoha">Konoha — Village Caché de la Feuille 🍃</option><option value="Suna">Suna — Village Caché du Sable 🏜️</option><option value="Kumo">Kumo — Village Caché des Nuages ☁️</option></select>
+                <div id="village-error" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);border-radius:6px;font-size:12px;color:#e07060">⛔ Désolé, ce village n'accueille plus de joueur actuellement. Veuillez en choisir un autre.</div>
               </div>
             </div>
             <div><label>Histoire du personnage</label>
@@ -482,7 +483,37 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
       <!-- GESTION DOUANIERS -->
       <div class="page" id="page-gestion-douaniers">
         <div class="alert alert-info">Activité de chaque douanier basée sur les candidatures acceptées ou refusées via le portail. Les données s'alimentent automatiquement à chaque décision prise.</div>
+        <!-- Camembert -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <span>📊 Répartition des candidatures traitées</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <button onclick="setPieRange('week',this)" class="period-btn active" id="pie-btn-week">Cette semaine</button>
+              <button onclick="setPieRange('month',this)" class="period-btn" id="pie-btn-month">Ce mois</button>
+              <button onclick="setPieRange('all',this)" class="period-btn" id="pie-btn-all">Tout</button>
+              <input type="date" id="pie-from" style="width:130px;margin-bottom:0;font-size:11px;padding:5px 9px">
+              <input type="date" id="pie-to" style="width:130px;margin-bottom:0;font-size:11px;padding:5px 9px">
+              <button class="btn btn-outline btn-sm" onclick="setPieRange('custom',null)">Appliquer</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:32px;padding:16px 0">
+            <canvas id="pie-chart" width="200" height="200"></canvas>
+            <div id="pie-legend" style="display:flex;flex-direction:column;gap:7px;font-size:12px"></div>
+          </div>
+          <div id="pie-empty" style="display:none;text-align:center;padding:22px;color:rgba(220,230,255,0.28);font-size:12px">Aucune donnée sur cette période.</div>
+        </div>
         <div id="gestion-douaniers-content"></div>
+      </div>
+
+      <!-- VILLAGES -->
+      <div class="page" id="page-villages">
+        <div class="alert alert-info" style="margin-bottom:16px">Suspendre un village bloque les nouvelles candidatures pour ce village. Les candidatures existantes ne sont pas affectées.</div>
+        <div class="card">
+          <div class="card-title">État des villages</div>
+          <div style="display:flex;flex-direction:column;gap:12px" id="villages-list">
+            <div style="text-align:center;padding:22px;color:rgba(220,230,255,0.28);font-size:12px">Chargement…</div>
+          </div>
+        </div>
       </div>
 
       <!-- MAINTENANCE -->
@@ -706,9 +737,9 @@ function startStaff(role, username, roleid) {
 const navConfig = {
   candidat:[{id:'formulaire',icon:'✦',label:'Candidature'},{id:'resultats',icon:'◈',label:'Mes résultats'}],
   douanier:[{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'voir-resultat',icon:'◐',label:'Voir un résultat'}],
-  douanierplus:[{id:'stats',icon:'◈',label:'Statistiques'},{id:'gestion-douaniers',icon:'👥',label:'Gestion douaniers'},{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'maintenance',icon:'⚙',label:'Maintenance'},{id:'voir-resultat',icon:'◑',label:'Voir un résultat'}]
+  douanierplus:[{id:'stats',icon:'◈',label:'Statistiques'},{id:'gestion-douaniers',icon:'👥',label:'Gestion douaniers'},{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'villages',icon:'🏘',label:'Villages'},{id:'maintenance',icon:'⚙',label:'Maintenance'},{id:'voir-resultat',icon:'◑',label:'Voir un résultat'}]
 };
-const pageTitles = {formulaire:'Formulaire de candidature',resultats:'Consulter une candidature',liste:'Candidatures',traiter:'Candidatures à traiter',stats:'Tableau de bord','voir-resultat':'Consulter une candidature','gestion-douaniers':'Gestion des douaniers',archives:'Archives',maintenance:'Maintenance'};
+const pageTitles = {formulaire:'Formulaire de candidature',resultats:'Consulter une candidature',liste:'Candidatures',traiter:'Candidatures à traiter',stats:'Tableau de bord','voir-resultat':'Consulter une candidature','gestion-douaniers':'Gestion des douaniers',archives:'Archives',maintenance:'Maintenance',villages:'Gestion des villages'};
 
 // Correspondance ID de rôle Discord → label affiché
 const ROLE_LABELS = {
@@ -741,7 +772,8 @@ function showPage(id) {
   if(id==='stats'){setDefaultPeriod();renderStats();}
   if(id==='archives') renderArchives();
   if(id==='maintenance') loadMaintenance();
-  if(id==='gestion-douaniers') renderGestionDouaniers();
+  if(id==='villages') loadVillages();
+  if(id==='gestion-douaniers') { renderGestionDouaniers(); renderPieChart(); }
   if(id==='oral') renderOralPage();
 }
 
@@ -757,7 +789,7 @@ function subscribeToApps() {
     if (badge) { badge.textContent = pendingCount; badge.style.display = pendingCount > 0 ? 'inline-block' : 'none'; }
     if(document.getElementById('page-stats').classList.contains('active')) renderStats();
     if(document.getElementById('page-archives').classList.contains('active')) renderArchives();
-    if(document.getElementById('page-gestion-douaniers').classList.contains('active')) renderGestionDouaniers();
+    if(document.getElementById('page-gestion-douaniers').classList.contains('active')) { renderGestionDouaniers(); renderPieChart(); }
     if(document.getElementById('page-traiter').classList.contains('active')) renderTraiter();
   });
 }
@@ -772,20 +804,31 @@ function goStep(n) {
   }
   if(n===3){
     if(!v('f-name')||!v('f-village')||!v('f-histoire')||!v('f-objectif')){alert('Merci de remplir tous les champs.');return;}
-    // Vérification nom interdit
-    var forbidden = ['naruto','sasuke','sakura','kakashi','itachi','madara','obito','tobi','minato','kushina','jiraiya','tsunade','orochimaru','nagato','pain','konan','neji','hinata','hyuga','lee','rock lee','tenten','shikamaru','nara','ino','yamanaka','choji','akimichi','kiba','inuzuka','shino','aburame','kurenai','asuma','sarutobi','hiruzen','hashirama','tobirama','senju','uchiha','uzumaki','gaara','temari','kankuro','rasa','killer bee','raikage','mei','mizukage','onoki','tsunade','danzo','zetsu','kisame','hidan','kakuzu','deidara','sasori','konan','yamato','sai','kabuto','rin','obito'];
-    var name = v('f-name').toLowerCase().trim();
-    var isForbidden = forbidden.some(function(f){ return name === f || name.includes(f); });
-    if(isForbidden){
-      var ne=document.getElementById('name-error'); if(ne) ne.style.display='block';
-      document.getElementById('f-name').style.borderColor='rgba(192,57,43,0.6)';
-      document.getElementById('f-name').focus();
-      return;
-    }
-    // Cacher l'erreur si tout va bien
-    var ne=document.getElementById('name-error'); if(ne) ne.style.display='none';
-    document.getElementById('f-name').style.borderColor='';
-    checkSteamAndShowRecap(); return;
+    // Vérification village suspendu
+    checkVillagesState(function(state){
+      var selectedVillage = v('f-village');
+      if(state[selectedVillage] === false){
+        var vErr = document.getElementById('village-error');
+        if(vErr) vErr.style.display='block';
+        return;
+      }
+      var vErr = document.getElementById('village-error');
+      if(vErr) vErr.style.display='none';
+      // Vérification nom interdit
+      var forbidden = ['naruto','sasuke','sakura','kakashi','itachi','madara','obito','tobi','minato','kushina','jiraiya','tsunade','orochimaru','nagato','pain','konan','neji','hinata','hyuga','lee','rock lee','tenten','shikamaru','nara','ino','yamanaka','choji','akimichi','kiba','inuzuka','shino','aburame','kurenai','asuma','sarutobi','hiruzen','hashirama','tobirama','senju','uchiha','uzumaki','gaara','temari','kankuro','rasa','killer bee','raikage','mei','mizukage','onoki','danzo','zetsu','kisame','hidan','kakuzu','deidara','sasori','yamato','sai','kabuto','rin'];
+      var name = v('f-name').toLowerCase().trim();
+      var isForbidden = forbidden.some(function(f){ return name === f || name.includes(f); });
+      if(isForbidden){
+        var ne=document.getElementById('name-error'); if(ne) ne.style.display='block';
+        document.getElementById('f-name').style.borderColor='rgba(192,57,43,0.6)';
+        document.getElementById('f-name').focus();
+        return;
+      }
+      var ne=document.getElementById('name-error'); if(ne) ne.style.display='none';
+      document.getElementById('f-name').style.borderColor='';
+      checkSteamAndShowRecap();
+    });
+    return;
   }
   setStep(n);
 }
@@ -1362,6 +1405,112 @@ function deleteFromArchive(fid) {
 }
 
 // ── GESTION DOUANIERS ──
+// ── CAMEMBERT GESTION DOUANIERS ──
+var pieRange = 'week';
+var pieFrom = null, pieTo = null;
+var pieColors = ['#5865F2','#e8e8ff','#5cb98a','#e07060','#c9a84c','#6699ee','#a78bfa','#f472b6','#34d399','#fb923c'];
+
+function setPieRange(range, btn) {
+  if(btn) {
+    document.querySelectorAll('#pie-btn-week,#pie-btn-month,#pie-btn-all').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+  pieRange = range;
+  if(range === 'custom') {
+    var f = document.getElementById('pie-from').value;
+    var t = document.getElementById('pie-to').value;
+    pieFrom = f ? new Date(f) : null;
+    pieTo = t ? new Date(t+'T23:59:59') : null;
+  }
+  renderPieChart();
+}
+
+function getPieDateRange() {
+  var now = new Date();
+  if(pieRange === 'week') {
+    var s = new Date(now); s.setDate(now.getDate() - now.getDay() + 1); s.setHours(0,0,0,0);
+    return {from: s, to: now};
+  }
+  if(pieRange === 'month') {
+    var s = new Date(now.getFullYear(), now.getMonth(), 1);
+    return {from: s, to: now};
+  }
+  if(pieRange === 'custom') return {from: pieFrom, to: pieTo};
+  return {from: null, to: null};
+}
+
+function renderPieChart() {
+  var canvas = document.getElementById('pie-chart');
+  var legend = document.getElementById('pie-legend');
+  var empty = document.getElementById('pie-empty');
+  if(!canvas) return;
+
+  var range = getPieDateRange();
+  var treated = allApps.filter(function(a){
+    if(!a.treatedBy || (a.status !== 'accepted' && a.status !== 'refused')) return false;
+    if(range.from || range.to) {
+      var d = new Date(a.treatedAt || a.date);
+      if(range.from && d < range.from) return false;
+      if(range.to && d > range.to) return false;
+    }
+    return true;
+  });
+
+  // Regrouper par douanier
+  var counts = {};
+  treated.forEach(function(a){ counts[a.treatedBy] = (counts[a.treatedBy]||0) + 1; });
+  var entries = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
+
+  if(!entries.length) {
+    canvas.style.display = 'none';
+    legend.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  canvas.style.display = 'block';
+  legend.style.display = 'flex';
+  empty.style.display = 'none';
+
+  var total = treated.length;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 200, 200);
+  var cx = 100, cy = 100, r = 85, gap = 0.03;
+  var start = -Math.PI / 2;
+
+  entries.forEach(function(name, i) {
+    var slice = (counts[name] / total) * (Math.PI * 2);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start + gap, start + slice - gap);
+    ctx.closePath();
+    ctx.fillStyle = pieColors[i % pieColors.length];
+    ctx.fill();
+    // Texte pourcentage si slice assez grande
+    if(slice > 0.3) {
+      var midAngle = start + slice / 2;
+      var tx = cx + (r * 0.65) * Math.cos(midAngle);
+      var ty = cy + (r * 0.65) * Math.sin(midAngle);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Lato,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(Math.round(counts[name]/total*100)+'%', tx, ty);
+    }
+    start += slice;
+  });
+
+  // Légende
+  legend.innerHTML = entries.map(function(name, i) {
+    var pct = Math.round(counts[name]/total*100);
+    return '<div style="display:flex;align-items:center;gap:8px">'+
+      '<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+pieColors[i % pieColors.length]+';flex-shrink:0"></span>'+
+      '<span style="color:rgba(220,230,255,0.75)">'+esc(name)+'</span>'+
+      '<span style="color:var(--gold);font-weight:700">'+counts[name]+'</span>'+
+      '<span style="color:rgba(220,230,255,0.35);font-size:10px">('+pct+'%)</span>'+
+    '</div>';
+  }).join('');
+}
+
 function renderGestionDouaniers() {
   var container = document.getElementById('gestion-douaniers-content'); if (!container) return;
   // Récupérer toutes les candidatures traitées (avec treatedBy)
@@ -1403,7 +1552,10 @@ function renderGestionDouaniers() {
     html += '<div class="card" style="margin-bottom:16px">';
     html += '<div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
     html += '<span>'+esc(name)+'</span>';
+    html += '<div style="display:flex;align-items:center;gap:10px">';
     html += '<span style="font-size:11px;font-family:\'Lato\',sans-serif;font-weight:400;color:rgba(220,230,255,0.45)">'+total+' traitées — Taux d\'acceptation : <strong style="color:var(--gold)">'+tauxAcc+'%</strong></span>';
+    html += '<button onclick="deleteDouanierStats(\''+esc(name)+'\')" style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.3);border-radius:5px;color:#e07060;font-size:10px;padding:3px 9px;cursor:pointer" title="Supprimer les stats de ce douanier">🗑 Supprimer</button>';
+    html += '</div>';
     html += '</div>';
     // Graphique
     html += '<div style="display:flex;gap:5px;font-size:10px;color:rgba(220,230,255,0.38);margin-bottom:8px">';
@@ -1520,6 +1672,79 @@ function launchConfetti(){
       }, i*20);
     })(i);
   }
+}
+
+// ── SUPPRIMER STATS DOUANIER ──
+function deleteDouanierStats(name) {
+  var modal = document.getElementById('modal-archive-confirm');
+  document.getElementById('archive-confirm-text').innerHTML =
+    'Supprimer toutes les statistiques de <strong style="color:var(--gold)">'+esc(name)+'</strong> ?<br>'+
+    'Cela retirera le champ <em>treatedBy</em> de toutes les candidatures qu\'il a traitées. Cette action est irréversible.';
+  document.getElementById('archive-confirm-btn').textContent = '🗑 Supprimer les stats';
+  document.getElementById('archive-confirm-btn').onclick = function() {
+    modal.classList.remove('open');
+    var toUpdate = allApps.filter(function(a){ return a.treatedBy === name; });
+    Promise.all(toUpdate.map(function(a){
+      return db.collection('candidatures').doc(a.firestoreId).update({treatedBy: null, treatedAt: null});
+    })).then(function(){
+      // Re-render après mise à jour (onSnapshot déclenchera renderGestionDouaniers)
+    }).catch(function(){ alert('Erreur lors de la suppression.'); });
+  };
+  modal.classList.add('open');
+}
+
+// ── GESTION VILLAGES ──
+var villagesState = {Konoha: true, Suna: true, Kumo: true};
+var villageColors = {Konoha:'rgba(192,57,43,', Suna:'rgba(200,205,255,', Kumo:'rgba(58,123,213,'};
+var villageEmojis = {Konoha:'🍃', Suna:'🏜️', Kumo:'☁️'};
+
+function loadVillages(){
+  db.collection('config').doc('villages').get().then(function(doc){
+    if(doc.exists) villagesState = Object.assign({Konoha:true,Suna:true,Kumo:true}, doc.data());
+    renderVillages();
+  }).catch(function(){ renderVillages(); });
+}
+
+function renderVillages(){
+  var list = document.getElementById('villages-list');
+  if(!list) return;
+  list.innerHTML = ['Konoha','Suna','Kumo'].map(function(v){
+    var open = villagesState[v] !== false;
+    var c = villageColors[v];
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:'+c+'0.08);border:1px solid '+c+'0.25);border-radius:8px;flex-wrap:wrap;gap:10px">'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<span style="font-size:20px">'+villageEmojis[v]+'</span>'+
+        '<div><div style="font-family:\'Cinzel\',serif;font-size:13px;color:var(--gold)">'+v+'</div>'+
+        '<div style="font-size:11px;color:rgba(220,230,255,0.45);margin-top:2px">'+(open?'✓ Ouvert aux candidatures':'⛔ Suspendu')+'</div></div>'+
+      '</div>'+
+      '<button onclick="toggleVillage(\''+v+'\')" style="padding:7px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid '+(open?'rgba(192,57,43,0.5)':'rgba(45,106,79,0.5)')+';background:'+(open?'rgba(192,57,43,0.15)':'rgba(45,106,79,0.15)')+';color:'+(open?'#e07060':'#5cb98a')+';transition:all 0.2s">'+
+        (open ? '⛔ Suspendre' : '✓ Réouvrir')+'</button>'+
+    '</div>';
+  }).join('');
+}
+
+function toggleVillage(v){
+  var open = villagesState[v] !== false;
+  var msg = open
+    ? 'Suspendre les candidatures pour '+v+' ?\nLes nouveaux candidats ne pourront plus choisir ce village.'
+    : 'Réouvrir les candidatures pour '+v+' ?';
+  var modal = document.getElementById('modal-archive-confirm');
+  document.getElementById('archive-confirm-text').innerHTML = msg.replace('\n','<br>');
+  document.getElementById('archive-confirm-btn').textContent = open ? '⛔ Suspendre '+v : '✓ Réouvrir '+v;
+  document.getElementById('archive-confirm-btn').onclick = function(){
+    modal.classList.remove('open');
+    villagesState[v] = !open;
+    db.collection('config').doc('villages').set(villagesState)
+    .then(function(){ renderVillages(); })
+    .catch(function(){ alert('Erreur lors de la sauvegarde.'); });
+  };
+  modal.classList.add('open');
+}
+
+function checkVillagesState(cb){
+  db.collection('config').doc('villages').get().then(function(doc){
+    cb(doc.exists ? Object.assign({Konoha:true,Suna:true,Kumo:true}, doc.data()) : {Konoha:true,Suna:true,Kumo:true});
+  }).catch(function(){ cb({Konoha:true,Suna:true,Kumo:true}); });
 }
 
 // ── HELPERS ──
