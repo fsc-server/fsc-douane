@@ -149,6 +149,9 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
 .period-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .period-btn{padding:6px 12px;background:transparent;border:1px solid rgba(200,205,255,0.2);border-radius:6px;color:rgba(220,230,255,0.45);cursor:pointer;font-size:11px;transition:all 0.15s;}
 .period-btn.active,.period-btn:hover{border-color:var(--gold);color:var(--gold);}
+.sort-btn{background:transparent;border:1px solid rgba(200,205,255,0.15);border-radius:5px;color:rgba(220,230,255,0.45);font-size:10px;padding:3px 9px;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;}
+.sort-btn:hover{color:var(--gold);border-color:rgba(200,205,255,0.35);}
+.sort-btn.active-sort{color:var(--gold);border-color:var(--gold);background:rgba(200,205,255,0.08);}
 /* ── CANDIDATE OVERLAY ── */
 #candidate-overlay{display:none;position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at 50% 20%,#0d1f3c,#070d1a);overflow-y:auto;}
 #candidate-overlay.open{display:block;}
@@ -236,6 +239,15 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
           <div class="step-line"></div>
           <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Confirmation</div></div>
         </div>
+        <div style="margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(220,230,255,0.35);margin-bottom:5px">
+            <span id="step-label-txt">Étape 1 sur 3</span>
+            <span id="step-pct-txt">33%</span>
+          </div>
+          <div style="height:4px;background:rgba(220,230,255,0.1);border-radius:4px;overflow:hidden">
+            <div id="step-progress-bar" style="height:100%;width:33%;background:var(--gold);border-radius:4px;transition:width 0.3s ease"></div>
+          </div>
+        </div>
         <div id="form-step1">
           <div class="card">
             <div class="card-title">Mes Informations</div>
@@ -320,6 +332,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
               <div class="result-box"><div class="detail-label" style="margin-bottom:5px">Statut</div><div id="res-status">—</div></div>
               <div class="result-box"><div class="detail-label" style="margin-bottom:5px">Note</div><div class="result-score" id="res-score">—</div><div style="font-size:10px;color:rgba(220,230,255,0.32)" id="res-grade"></div></div>
             </div>
+            <div id="res-timer" style="display:none;font-size:11px;color:rgba(220,230,255,0.38);text-align:center;margin-bottom:10px;letter-spacing:0.3px">—</div>
             <div id="oral-result-section" style="display:none;margin-top:9px"><div class="oral-box" id="oral-result-box"><div class="oral-label">Résultat de l'oral</div><div id="oral-result-val" style="font-family:'Cinzel',serif;font-size:14px;margin-top:4px"></div></div></div>
             <div id="res-refused-msg" style="display:none;margin-top:10px">
               <div class="alert alert-error" style="text-align:center;line-height:1.6">
@@ -354,7 +367,10 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
           </div>
         </div>
         <div id="traiter-content" style="display:none">
-          <div class="alert alert-info" id="traiter-counter" style="margin-bottom:16px"></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <div class="alert alert-info" id="traiter-counter" style="margin-bottom:0;flex:1"></div>
+            <input type="text" id="traiter-search" placeholder="Rechercher (nom, ID, Steam, Discord)…" oninput="renderTraiter()" style="margin-bottom:0;width:260px;min-width:180px">
+          </div>
           <div class="card">
             <div class="card-title" id="traiter-title">Candidature</div>
             <div id="traiter-body"></div>
@@ -368,11 +384,12 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
       <!-- LISTE -->
       <div class="page" id="page-liste">
         <div class="search-bar">
-          <input type="text" id="search-input" placeholder="Nom, ID, SteamID64, village…" oninput="renderList()" style="margin-bottom:0">
+          <input type="text" id="search-input" placeholder="Nom, ID, SteamID64, village…" oninput="currentPage=1;renderList()" style="margin-bottom:0">
           <button class="filter-btn active" onclick="setFilter('all',this)">Tous</button>
           <button class="filter-btn" onclick="setFilter('pending',this)">En attente</button>
           <button class="filter-btn" onclick="setFilter('accepted',this)">Acceptés</button>
           <button class="filter-btn" onclick="setFilter('refused',this)">Refusés</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()" title="Exporter en CSV" style="flex-shrink:0">⬇ CSV</button>
         </div>
         <div id="archive-action-bar" style="display:none;margin-bottom:12px">
           <div class="alert alert-warning" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -381,7 +398,17 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Candidatures <span id="app-count" style="font-size:11px;color:rgba(220,230,255,0.28);font-family:'Lato',sans-serif;font-weight:400"></span></div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <span>Candidatures <span id="app-count" style="font-size:11px;color:rgba(220,230,255,0.28);font-family:'Lato',sans-serif;font-weight:400"></span></span>
+            <div style="display:flex;gap:5px;font-size:11px">
+              <span style="color:rgba(220,230,255,0.35)">Trier :</span>
+              <button onclick="setSort('date')" id="sort-date" class="sort-btn active-sort">Date</button>
+              <button onclick="setSort('name')" id="sort-name" class="sort-btn">Nom</button>
+              <button onclick="setSort('village')" id="sort-village" class="sort-btn">Village</button>
+              <button onclick="setSort('status')" id="sort-status" class="sort-btn">Statut</button>
+              <button onclick="setSort('score')" id="sort-score" class="sort-btn">Note</button>
+            </div>
+          </div>
           <div id="app-list"><div style="text-align:center;padding:22px;color:rgba(220,230,255,0.28);font-size:12px">Chargement…</div></div>
           <div id="app-pagination" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:12px;color:rgba(220,230,255,0.45)"></div>
         </div>
@@ -455,6 +482,26 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
         <div id="gestion-douaniers-content"></div>
       </div>
 
+      <!-- MAINTENANCE -->
+      <div class="page" id="page-maintenance">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">🔧 Mode maintenance</div>
+          <div class="alert alert-warning" style="margin-bottom:16px">Activer la maintenance ferme les candidatures pour les joueurs. Un message s'affiche à la place du formulaire.</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+            <label style="font-size:13px;color:rgba(220,230,255,0.7)">Maintenance active :</label>
+            <button id="maintenance-toggle" onclick="toggleMaintenance()" style="padding:8px 20px;border-radius:6px;border:1px solid rgba(192,57,43,0.5);background:rgba(192,57,43,0.12);color:#e07060;cursor:pointer;font-size:12px;font-weight:700;transition:all 0.2s">Désactivée</button>
+          </div>
+          <div>
+            <label>Message affiché aux candidats</label>
+            <textarea id="maintenance-msg" rows="3" style="width:100%;background:rgba(4,10,28,0.7);border:1px solid rgba(200,205,255,0.2);border-radius:6px;color:rgba(220,230,255,0.85);padding:10px 14px;font-size:13px;resize:vertical">Les candidatures sont temporairement fermées. Revenez bientôt !</textarea>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn btn-primary" onclick="saveMaintenance()">💾 Enregistrer</button>
+          </div>
+          <div id="maintenance-feedback" style="display:none;margin-top:10px;font-size:12px;color:#5cb98a">Sauvegardé ✓</div>
+        </div>
+      </div>
+
       <!-- VOIR UN RÉSULTAT (staff) -->
       <div class="page" id="page-voir-resultat">
         <div class="lookup-box" id="staff-lookup-box">
@@ -512,7 +559,7 @@ const db = firebase.firestore();
 
 // ── STATE ──
 let currentRole = null, allApps = [], currentFilter = 'all', currentUserName = '';
-let currentPage = 1, pageSize = 25;
+let currentPage = 1, pageSize = 25, sortCol = 'date', sortDir = -1;
 let statsPeriodFrom = null, statsPeriodTo = null;
 let firestoreUnsub = null;
 
@@ -553,6 +600,14 @@ function enterAsCandidate(page) {
     overlay.style.opacity = '0';
     overlay.classList.add('open');
     setTimeout(function(){ overlay.style.opacity = '1'; }, 10);
+    if (page === 'formulaire') {
+      checkMaintenanceMode(function(active, msg){
+        if(active){
+          cnt.innerHTML = '<div class="alert alert-warning" style="text-align:center;padding:24px"><div style="font-size:22px;margin-bottom:10px">🔧</div><strong>Candidatures fermées</strong><br><span style="font-size:13px;opacity:0.7;margin-top:8px;display:block">'+esc(msg)+'</span></div>';
+          realPage.classList.remove('active');
+        }
+      });
+    }
     if (page === 'resultats') {
       title.textContent = 'Consulter une candidature';
       // Déplacer la vraie page dans l'overlay (pas une copie)
@@ -648,9 +703,9 @@ function startStaff(role, username, roleid) {
 const navConfig = {
   candidat:[{id:'formulaire',icon:'✦',label:'Candidature'},{id:'resultats',icon:'◈',label:'Mes résultats'}],
   douanier:[{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'voir-resultat',icon:'◐',label:'Voir un résultat'}],
-  douanierplus:[{id:'stats',icon:'◈',label:'Statistiques'},{id:'gestion-douaniers',icon:'👥',label:'Gestion douaniers'},{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'voir-resultat',icon:'◑',label:'Voir un résultat'}]
+  douanierplus:[{id:'stats',icon:'◈',label:'Statistiques'},{id:'gestion-douaniers',icon:'👥',label:'Gestion douaniers'},{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'maintenance',icon:'⚙',label:'Maintenance'},{id:'voir-resultat',icon:'◑',label:'Voir un résultat'}]
 };
-const pageTitles = {formulaire:'Formulaire de candidature',resultats:'Consulter une candidature',liste:'Candidatures',traiter:'Candidatures à traiter',stats:'Tableau de bord','voir-resultat':'Consulter une candidature','gestion-douaniers':'Gestion des douaniers',archives:'Archives'};
+const pageTitles = {formulaire:'Formulaire de candidature',resultats:'Consulter une candidature',liste:'Candidatures',traiter:'Candidatures à traiter',stats:'Tableau de bord','voir-resultat':'Consulter une candidature','gestion-douaniers':'Gestion des douaniers',archives:'Archives',maintenance:'Maintenance'};
 
 // Correspondance ID de rôle Discord → label affiché
 const ROLE_LABELS = {
@@ -682,6 +737,7 @@ function showPage(id) {
   if(id==='traiter') renderTraiter();
   if(id==='stats'){setDefaultPeriod();renderStats();}
   if(id==='archives') renderArchives();
+  if(id==='maintenance') loadMaintenance();
   if(id==='gestion-douaniers') renderGestionDouaniers();
   if(id==='oral') renderOralPage();
 }
@@ -730,14 +786,19 @@ function checkSteamAndShowRecap() {
     var existing = snap.docs.map(function(d){return d.data();}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
     if(existing.length){
       var l=existing[0];
+      var totalCount = existing.length;
+      var refusedCount = existing.filter(function(x){return x.status==='refused';}).length;
       if(l.status==='accepted'){
-        wb.innerHTML='<div class="alert alert-error">⛔ Une candidature avec ce SteamID64 a déjà été <strong>acceptée</strong> ('+l.id+'). Vous ne pouvez pas redéposer.</div>';
+        wb.innerHTML='<div class="alert alert-error">⛔ Une candidature avec ce SteamID64 a déjà été <strong>acceptée</strong> ('+l.id+'). Vous ne pouvez pas redéposer — rendez-vous directement sur le Discord de la Douane FSC pour passer l\'oral !</div>';
+        wb.style.display='block'; btn.disabled=true; btn.style.opacity='0.4';
+      } else if(refusedCount >= 5){
+        wb.innerHTML='<div class="alert alert-error">⛔ Vous avez atteint la limite de <strong>5 candidatures refusées</strong> pour ce SteamID64. Contactez un responsable sur le Discord si vous pensez qu\'il s\'agit d\'une erreur.</div>';
         wb.style.display='block'; btn.disabled=true; btn.style.opacity='0.4';
       } else if(l.status==='pending'){
         wb.innerHTML='<div class="alert alert-warning">⚠️ Une candidature avec ce SteamID64 est <strong>en attente</strong> ('+l.id+'). Votre dossier est déjà en cours d\'examen.</div>';
-        wb.style.display='block';
+        wb.style.display='block'; btn.disabled=true; btn.style.opacity='0.4';
       } else if(l.status==='refused'){
-        wb.innerHTML='<div class="alert alert-warning">⚠️ Une précédente candidature a été <strong>refusée</strong> ('+l.id+'). Vous pouvez redéposer.</div>';
+        wb.innerHTML='<div class="alert alert-warning">⚠️ Une précédente candidature a été refusée ('+l.id+'). Vous pouvez redéposer — tentative '+(refusedCount)+'/5.</div>';
         wb.style.display='block';
       }
     }
@@ -750,6 +811,13 @@ function setStep(n){
     var el=document.getElementById(s); el.className='step';
     if(i+1<n)el.classList.add('done'); else if(i+1===n)el.classList.add('current');
   });
+  var pct=Math.round(n/3*100);
+  var bar=document.getElementById('step-progress-bar');
+  var lbl=document.getElementById('step-label-txt');
+  var pctTxt=document.getElementById('step-pct-txt');
+  if(bar) bar.style.width=pct+'%';
+  if(lbl) lbl.textContent='Étape '+n+' sur 3';
+  if(pctTxt) pctTxt.textContent=pct+'%';
 }
 function buildRecap(){
   var vill=v('f-village');
@@ -844,6 +912,13 @@ function showResultDisplay(a){
   document.getElementById('res-village').innerHTML='<span class="village-badge village-'+a.village+'">'+a.village+'</span>';
   var stxt=a.status==='pending'?"En attente d'évaluation":a.status==='accepted'?'Acceptée ✓':'Refusée';
   document.getElementById('res-status').innerHTML='<span class="status-badge status-'+a.status+'" style="font-size:12px;padding:4px 13px">'+stxt+'</span>';
+  // Timer
+  if(a.date){
+    var diff=Math.floor((Date.now()-new Date(a.date))/(1000*60*60*24));
+    var timerTxt=diff===0?'Déposée aujourd\'hui':diff===1?'Déposée il y a 1 jour':'Déposée il y a '+diff+' jours';
+    var timerEl=document.getElementById('res-timer');
+    if(timerEl){timerEl.textContent=timerTxt;timerEl.style.display='block';}
+  }
   // Message encouragement si refusé
   var refusedMsg = document.getElementById('res-refused-msg');
   if(refusedMsg) refusedMsg.style.display = a.status === 'refused' ? 'block' : 'none';
@@ -881,8 +956,13 @@ var traiterIndex = 0;
 
 function renderTraiter() {
   // Construire la file : candidatures en attente non archivées, les plus anciennes en premier
+  var traiterSearch = (document.getElementById('traiter-search')||{}).value||'';
   traiterQueue = allApps
-    .filter(function(a){ return a.status === 'pending' && !a.archived; })
+    .filter(function(a){
+      if(a.status !== 'pending' || a.archived) return false;
+      if(traiterSearch){var q=traiterSearch.toLowerCase();return(a.id||'').toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q)||(a.steam||'').includes(q)||(a.discord||'').toLowerCase().includes(q);}
+      return true;
+    })
     .sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
   traiterIndex = 0;
   showTraiterCurrent();
@@ -970,14 +1050,18 @@ function renderList(){
     if(search){var q=search.toLowerCase();return(a.id||'').toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q)||(a.village||'').toLowerCase().includes(q)||(a.steam||'').includes(q);}
     return true;
   });
-  // Trier : en attente en premier (plus anciens en tête), puis acceptés, puis refusés
-  var order = {pending:0, accepted:1, refused:2};
+  // Tri par colonne sélectionnée
   filtered.sort(function(a,b){
-    var diff = (order[a.status]||0) - (order[b.status]||0);
-    if(diff !== 0) return diff;
-    // À statut égal, plus ancienne candidature en premier pour les pending
-    if(a.status === 'pending') return new Date(a.date) - new Date(b.date);
-    return new Date(b.date) - new Date(a.date);
+    var va,vb;
+    if(sortCol==='date'){va=new Date(a.date||0);vb=new Date(b.date||0);}
+    else if(sortCol==='name'){va=(a.name||'').toLowerCase();vb=(b.name||'').toLowerCase();}
+    else if(sortCol==='village'){va=(a.village||'').toLowerCase();vb=(b.village||'').toLowerCase();}
+    else if(sortCol==='status'){var o={pending:0,accepted:1,refused:2};va=o[a.status]||0;vb=o[b.status]||0;}
+    else if(sortCol==='score'){va=a.score!=null?a.score:-1;vb=b.score!=null?b.score:-1;}
+    else {va=new Date(a.date||0);vb=new Date(b.date||0);}
+    if(va<vb) return -1*sortDir;
+    if(va>vb) return 1*sortDir;
+    return 0;
   });
   document.getElementById('app-count').textContent='('+filtered.length+')';
   if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:22px;color:rgba(220,230,255,0.28);font-size:12px">Aucune candidature.</div>';
@@ -1319,6 +1403,84 @@ function renderGestionDouaniers() {
     html += '</div>';
   });
   container.innerHTML = html;
+}
+
+// ── TRI ──
+function setSort(col){
+  if(sortCol===col){ sortDir*=-1; }
+  else { sortCol=col; sortDir=col==='date'?-1:1; }
+  currentPage=1;
+  document.querySelectorAll('.sort-btn').forEach(function(b){b.classList.remove('active-sort');});
+  var btn=document.getElementById('sort-'+col);
+  if(btn) btn.classList.add('active-sort');
+  renderList();
+}
+
+// ── EXPORT CSV ──
+function exportCSV(){
+  var search=(document.getElementById('search-input')||{}).value||'';
+  var data=allApps.filter(function(a){
+    if(a.archived) return false;
+    if(currentFilter!=='all'&&a.status!==currentFilter) return false;
+    if(search){var q=search.toLowerCase();return(a.id||'').toLowerCase().includes(q)||(a.name||'').toLowerCase().includes(q)||(a.village||'').toLowerCase().includes(q)||(a.steam||'').includes(q);}
+    return true;
+  });
+  var headers=['ID','SteamID64','Discord','Personnage','Village','Statut','Note','Commentaire','Traité par','Date'];
+  var rows=data.map(function(a){return[
+    a.id||'',a.steam||'',a.discord||'',a.name||'',a.village||'',a.status||'',
+    a.score!=null?Math.min(a.score,10):'',
+    (a.comment||'').replace(/"/g,'""'),
+    a.treatedBy||'',
+    a.date?new Date(a.date).toLocaleDateString('fr-FR'):''
+  ].map(function(v){return '"'+v+'"';}).join(',');});
+  var csv=headers.join(',')+'\n'+rows.join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='candidatures_fsc_'+new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ── MAINTENANCE ──
+var maintenanceActive = false;
+function loadMaintenance(){
+  db.collection('config').doc('maintenance').get().then(function(doc){
+    if(doc.exists){
+      maintenanceActive=!!doc.data().active;
+      var msg=doc.data().message||'Les candidatures sont temporairement fermées. Revenez bientôt !';
+      var msgEl=document.getElementById('maintenance-msg');
+      if(msgEl) msgEl.value=msg;
+      updateMaintenanceToggle();
+    }
+  });
+}
+function updateMaintenanceToggle(){
+  var btn=document.getElementById('maintenance-toggle');
+  if(!btn) return;
+  if(maintenanceActive){
+    btn.textContent='✓ Activée'; btn.style.background='rgba(45,106,79,0.2)'; btn.style.borderColor='rgba(45,106,79,0.5)'; btn.style.color='#5cb98a';
+  } else {
+    btn.textContent='Désactivée'; btn.style.background='rgba(192,57,43,0.12)'; btn.style.borderColor='rgba(192,57,43,0.5)'; btn.style.color='#e07060';
+  }
+}
+function toggleMaintenance(){
+  maintenanceActive=!maintenanceActive;
+  updateMaintenanceToggle();
+}
+function saveMaintenance(){
+  var msg=(document.getElementById('maintenance-msg')||{}).value||'Les candidatures sont temporairement fermées. Revenez bientôt !';
+  db.collection('config').doc('maintenance').set({active:maintenanceActive,message:msg})
+  .then(function(){
+    var fb=document.getElementById('maintenance-feedback');
+    if(fb){fb.style.display='block';setTimeout(function(){fb.style.display='none';},2000);}
+  });
+}
+function checkMaintenanceMode(cb){
+  db.collection('config').doc('maintenance').get().then(function(doc){
+    if(doc.exists&&doc.data().active){
+      cb(true, doc.data().message||'Les candidatures sont temporairement fermées.');
+    } else { cb(false,''); }
+  }).catch(function(){ cb(false,''); });
 }
 
 // ── HELPERS ──
