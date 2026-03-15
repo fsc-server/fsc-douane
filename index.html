@@ -813,7 +813,7 @@ function showTraiterCurrent() {
     '<div class="card-title" style="font-size:12px;margin-bottom:10px">Décision</div>' +
     '<div class="field-row" style="align-items:flex-end;margin-bottom:10px">' +
       '<div><label>Note (/10)</label><input type="number" id="t-score" min="0" max="10" placeholder="—" style="width:80px;margin-bottom:0"></div>' +
-      '<div><label>Commentaire <span style="font-size:10px;color:rgba(245,240,232,0.35)">(optionnel)</span></label><input type="text" id="t-comment" value="Félicitations, bonne candidature !" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div>' +
+      '<div><label>Commentaire <span style="font-size:10px;color:rgba(245,240,232,0.35)">(optionnel)</span></label><input type="text" id="t-comment" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div>' +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
       '<button class="btn btn-success" onclick="decideTraiter(\''+a.firestoreId+'\',\'accepted\')">✓ Accepter</button>' +
@@ -833,7 +833,13 @@ function decideTraiter(fid, status) {
   var se = document.getElementById('t-score');
   var ce = document.getElementById('t-comment');
   var score = se && se.value !== '' ? parseInt(se.value) : null;
-  var comment = ce ? ce.value : '';
+  // Note automatique si pas de note
+  if (score === null) { score = status === 'accepted' ? 8 : 3; }
+  var comment = ce ? ce.value.trim() : '';
+  // Message automatique si pas de commentaire
+  if (!comment) {
+    comment = status === 'accepted' ? 'Félicitations, bonne candidature !' : 'Candidature insuffisante, n\'hésite pas à retenter ta chance.';
+  }
   db.collection('candidatures').doc(fid).update({status:status, score:score, comment:comment, treatedBy: currentUserName, treatedAt: new Date().toISOString()})
   .then(function(){
     var fb = document.getElementById('traiter-feedback');
@@ -889,7 +895,7 @@ function openModal(fid){
     (canEdit?'<hr class="sep"><div class="card-title" style="font-size:12px;margin-bottom:10px">Décision</div>'+
       '<div class="field-row" style="align-items:flex-end;margin-bottom:9px">'+
       '<div><label>Note (/10)</label><input type="number" id="m-score" min="0" max="10" value="'+(a.score!=null?a.score:'')+'" placeholder="—" style="width:80px;margin-bottom:0"></div>'+
-      '<div><label>Commentaire <span style="font-size:10px;color:rgba(245,240,232,0.35)">(optionnel)</span></label><input type="text" id="m-comment" value="'+(a.comment||'Félicitations, bonne candidature !')+'" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div></div>'+
+      '<div><label>Commentaire <span style="font-size:10px;color:rgba(245,240,232,0.35)">(optionnel)</span></label><input type="text" id="m-comment" value="'+esc(a.comment||'')+'" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div></div>'+
       '<div style="display:flex;gap:7px;flex-wrap:wrap">'+
       '<button class="btn btn-success btn-sm" onclick="decide(\''+fid+'\',\'accepted\')">✓ Accepter</button>'+
       '<button class="btn btn-danger btn-sm" onclick="decide(\''+fid+'\',\'refused\')">✕ Refuser</button>'+
@@ -900,7 +906,15 @@ function openModal(fid){
 }
 function decide(fid,status){
   var se=document.getElementById('m-score'),ce=document.getElementById('m-comment');
-  db.collection('candidatures').doc(fid).update({status:status,score:se&&se.value!==''?parseInt(se.value):null,comment:ce?ce.value:'',treatedBy:currentUserName,treatedAt:new Date().toISOString()})
+  var score = se&&se.value!==''?parseInt(se.value):null;
+  // Note automatique si pas de note
+  if (score === null) { score = status === 'accepted' ? 8 : 3; }
+  var comment = ce ? ce.value.trim() : '';
+  // Message automatique si pas de commentaire
+  if (!comment) {
+    comment = status === 'accepted' ? 'Félicitations, bonne candidature !' : 'Candidature insuffisante, n\'hésite pas à retenter ta chance.';
+  }
+  db.collection('candidatures').doc(fid).update({status:status,score:score,comment:comment,treatedBy:currentUserName,treatedAt:new Date().toISOString()})
   .then(function(){var fb=document.getElementById('modal-feedback');if(fb){fb.style.display='block';setTimeout(function(){fb.style.display='none';closeModal();},800);}})
   .catch(function(){alert('Erreur.');});
 }
