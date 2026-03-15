@@ -825,10 +825,10 @@ function goStep(n) {
       var ae = document.getElementById('age-error');
       if(ae){
         ae.style.display='block';
-        ae.innerHTML='⛔ Désolé, vous devez avoir <strong>plus de 15 ans</strong> pour rejoindre le serveur.<br><span id="age-countdown" style="font-size:11px;opacity:0.7">Redirection dans 3 secondes…</span>';
+        ae.innerHTML='⛔ Désolé, vous devez avoir <strong>plus de 15 ans</strong> pour rejoindre le serveur.<br><span id="age-countdown" style="font-size:11px;opacity:0.7">Redirection dans 10 secondes…</span>';
       }
       document.getElementById('f-age').style.borderColor='rgba(192,57,43,0.6)';
-      var secs = 3;
+      var secs = 10;
       var timer = setInterval(function(){
         secs--;
         var cd = document.getElementById('age-countdown');
