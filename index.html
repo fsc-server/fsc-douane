@@ -155,14 +155,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
 /* ── CONFETTI ── */
 @keyframes confetti-fall{0%{transform:translateY(-10px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
 .confetti-piece{position:fixed;width:8px;height:8px;top:-10px;z-index:9999;animation:confetti-fall linear forwards;pointer-events:none;}
-/* ── AUDIO PLAYER ── */
-#audio-player{position:fixed;bottom:16px;left:16px;z-index:998;display:flex;align-items:center;gap:6px;background:rgba(6,13,30,0.6);border:1px solid rgba(200,205,255,0.1);border-radius:20px;padding:5px 10px;backdrop-filter:blur(8px);transition:opacity 0.3s;opacity:0.35;}
-#audio-player:hover{opacity:1;border-color:rgba(200,205,255,0.25);}
-#audio-mute-btn{background:none;border:none;cursor:pointer;font-size:13px;color:rgba(220,230,255,0.6);padding:0;line-height:1;transition:color 0.2s;}
-#audio-mute-btn:hover{color:#fff;}
-#audio-volume{-webkit-appearance:none;appearance:none;width:55px;height:2px;border-radius:2px;background:rgba(200,205,255,0.15);outline:none;cursor:pointer;}
-#audio-volume::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:rgba(200,205,255,0.5);cursor:pointer;}
-#audio-volume::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:rgba(200,205,255,0.5);cursor:pointer;border:none;}
+
 /* ── CANDIDATE OVERLAY ── */
 #candidate-overlay{display:none;position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at 50% 20%,#0d1f3c,#070d1a);overflow-y:auto;}
 #candidate-overlay.open{display:block;}
@@ -276,6 +269,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
               </div>
             </div>
             <div><label>ID Discord</label><input type="text" id="f-discord" placeholder="username ou @username"></div>
+            <div><label>Votre âge (IRL)</label><input type="number" id="f-age" min="1" max="99" placeholder="Ex: 18" style="width:100px"><div id="age-error" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);border-radius:6px;font-size:12px;color:#e07060">⛔ Désolé, vous devez avoir <strong>plus de 15 ans</strong> pour rejoindre le serveur.</div></div>
             <div style="text-align:right"><button class="btn btn-primary" onclick="goStep(2)">Suivant →</button></div>
           </div>
         </div>
@@ -366,10 +360,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
               </div>
             </div>
             <div id="res-comment-box" style="display:none;margin-top:11px"><div class="detail-label">Commentaire du recruteur</div><div class="detail-value" id="res-comment" style="font-style:italic;opacity:0.6;font-size:12px"></div></div>
-            <hr class="sep" style="margin:16px 0">
-            <div style="font-size:11px;color:rgba(200,205,255,0.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Votre candidature</div>
-            <div class="detail-row" style="margin-bottom:12px"><div class="detail-label">Histoire du personnage</div><div class="detail-value history-text" id="res-histoire">—</div></div>
-            <div class="detail-row"><div class="detail-label">Objectifs du personnage</div><div class="detail-value" style="font-size:13px;line-height:1.6" id="res-objectif">—</div></div>
+
             <div style="margin-top:13px;text-align:center"><button class="btn btn-outline btn-sm" onclick="resetLookup()">← Nouvelle recherche</button></div>
           </div>
         </div>
@@ -526,6 +517,19 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
           <div class="card-title">État des villages</div>
           <div style="display:flex;flex-direction:column;gap:12px" id="villages-list">
             <div style="text-align:center;padding:22px;color:rgba(220,230,255,0.28);font-size:12px">Chargement…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUESTIONS -->
+      <div class="page" id="page-questions">
+        <div class="alert alert-warning" style="margin-bottom:16px">Modifier les libellés et placeholders des questions du formulaire candidat. Les modifications sont immédiates.</div>
+        <div class="card">
+          <div class="card-title">Questions du formulaire</div>
+          <div id="questions-list" style="display:flex;flex-direction:column;gap:14px"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+            <button class="btn btn-primary" onclick="saveQuestions()">💾 Enregistrer</button>
+            <div id="questions-feedback" style="display:none;font-size:12px;color:#5cb98a">Sauvegardé ✓</div>
           </div>
         </div>
       </div>
@@ -741,6 +745,7 @@ function startStaff(role, username, roleid) {
   document.getElementById('topbar-role').textContent = username ? roleLabel + ' — ' + username : roleLabel;
   buildNav(role);
   subscribeToApps();
+  loadAndApplyQuestions();
   // Afficher le bouton d'archivage uniquement pour les responsables
   var archBar = document.getElementById('archive-action-bar');
   if (archBar) archBar.style.display = role === 'douanierplus' ? 'block' : 'none';
@@ -751,9 +756,9 @@ function startStaff(role, username, roleid) {
 const navConfig = {
   candidat:[{id:'formulaire',icon:'✦',label:'Candidature'},{id:'resultats',icon:'◈',label:'Mes résultats'}],
   douanier:[{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'voir-resultat',icon:'◐',label:'Voir un résultat'}],
-  douanierplus:[{id:'stats',icon:'◈',label:'Statistiques'},{id:'gestion-douaniers',icon:'👥',label:'Gestion douaniers'},{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'villages',icon:'🏘',label:'Villages'},{id:'maintenance',icon:'⚙',label:'Maintenance'},{id:'voir-resultat',icon:'◑',label:'Voir un résultat'}]
+  douanierplus:[{id:'stats',icon:'◈',label:'Statistiques'},{id:'gestion-douaniers',icon:'👥',label:'Gestion douaniers'},{id:'traiter',icon:'⚡',label:'À traiter'},{id:'liste',icon:'◉',label:'Candidatures'},{id:'archives',icon:'🗄',label:'Archives'},{id:'villages',icon:'🏘',label:'Villages'},{id:'questions',icon:'✎',label:'Questions'},{id:'maintenance',icon:'⚙',label:'Maintenance'},{id:'voir-resultat',icon:'◑',label:'Voir un résultat'}]
 };
-const pageTitles = {formulaire:'Formulaire de candidature',resultats:'Consulter une candidature',liste:'Candidatures',traiter:'Candidatures à traiter',stats:'Tableau de bord','voir-resultat':'Consulter une candidature','gestion-douaniers':'Gestion des douaniers',archives:'Archives',maintenance:'Maintenance',villages:'Gestion des villages'};
+const pageTitles = {formulaire:'Formulaire de candidature',resultats:'Consulter une candidature',liste:'Candidatures',traiter:'Candidatures à traiter',stats:'Tableau de bord','voir-resultat':'Consulter une candidature','gestion-douaniers':'Gestion des douaniers',archives:'Archives',maintenance:'Maintenance',villages:'Gestion des villages',questions:'Modifier les questions'};
 
 // Correspondance ID de rôle Discord → label affiché
 const ROLE_LABELS = {
@@ -786,6 +791,7 @@ function showPage(id) {
   if(id==='stats'){setDefaultPeriod();renderStats();}
   if(id==='archives') renderArchives();
   if(id==='maintenance') loadMaintenance();
+  if(id==='questions') loadQuestions();
   if(id==='villages') loadVillages();
   if(id==='gestion-douaniers') { renderGestionDouaniers(); renderPieChart(); }
   if(id==='oral') renderOralPage();
@@ -812,7 +818,31 @@ function subscribeToApps() {
 function goStep(n) {
   if(n===2){
     var steam=v('f-steam');
-    if(!steam||!v('f-discord')){alert('Merci de remplir tous les champs.');return;}
+    if(!steam||!v('f-discord')||!v('f-age')){alert('Merci de remplir tous les champs.');return;}
+    var age = parseInt(v('f-age'));
+    if(isNaN(age)||age<1||age>99){alert('Âge invalide.');return;}
+    if(age <= 15){
+      var ae = document.getElementById('age-error');
+      if(ae){
+        ae.style.display='block';
+        ae.innerHTML='⛔ Désolé, vous devez avoir <strong>plus de 15 ans</strong> pour rejoindre le serveur.<br><span id="age-countdown" style="font-size:11px;opacity:0.7">Redirection dans 3 secondes…</span>';
+      }
+      document.getElementById('f-age').style.borderColor='rgba(192,57,43,0.6)';
+      var secs = 3;
+      var timer = setInterval(function(){
+        secs--;
+        var cd = document.getElementById('age-countdown');
+        if(cd) cd.textContent = 'Redirection dans '+secs+' seconde'+(secs>1?'s':'')+'…';
+        if(secs<=0){
+          clearInterval(timer);
+          closeCandidateOverlay ? closeCandidateOverlay() : showHome();
+        }
+      }, 1000);
+      return;
+    }
+    var ae = document.getElementById('age-error');
+    if(ae) ae.style.display='none';
+    document.getElementById('f-age').style.borderColor='';
     if(!/^7\d{16}$/.test(steam)){alert('SteamID64 invalide.\nDoit commencer par 7 et contenir exactement 17 chiffres.');return;}
     setStep(2); return;
   }
@@ -909,7 +939,7 @@ function setStep(n){
 function buildRecap(){
   var vill=v('f-village');
   document.getElementById('recap-content').innerHTML=
-    '<div class="field-row"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(v('f-steam'))+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(v('f-discord'))+'</div></div></div>'+
+    '<div class="field-row"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(v('f-steam'))+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(v('f-discord'))+'</div></div></div>'+'<div class="field-row" style="margin-bottom:8px"><div class="detail-row"><div class="detail-label">Âge (IRL)</div><div class="detail-value">'+esc(v('f-age'))+' ans</div></div></div>'+
     '<div class="field-row" style="margin-top:4px"><div class="detail-row"><div class="detail-label">Personnage</div><div class="detail-value">'+esc(v('f-name'))+'</div></div><div class="detail-row"><div class="detail-label">Village</div><div class="detail-value"><span class="village-badge village-'+vill+'">'+vill+'</span></div></div></div>'+
     '<div class="detail-row" style="margin-top:4px"><div class="detail-label">Histoire</div><div class="detail-value history-text">'+esc(v('f-histoire'))+'</div></div>'+
     '<div class="detail-row" style="margin-top:7px"><div class="detail-label">Objectif</div><div class="detail-value" style="font-size:12px">'+esc(v('f-objectif'))+'</div></div>';
@@ -918,7 +948,7 @@ function submitForm() {
   var btn=document.getElementById('submit-btn'); if(btn.disabled)return;
   btn.disabled=true; btn.textContent='Envoi…';
   var id='FSC-'+new Date().getFullYear().toString().slice(2)+String(new Date().getMonth()+1).padStart(2,'0')+'-'+Math.floor(Math.random()*9000+1000);
-  db.collection('candidatures').add({id:id,steam:v('f-steam'),discord:v('f-discord'),village:v('f-village'),name:v('f-name'),histoire:v('f-histoire'),objectif:v('f-objectif'),status:'pending',score:null,comment:'',oralDate:null,oralResult:null,date:new Date().toISOString()})
+  db.collection('candidatures').add({id:id,steam:v('f-steam'),discord:v('f-discord'),age:v('f-age'),village:v('f-village'),name:v('f-name'),histoire:v('f-histoire'),objectif:v('f-objectif'),status:'pending',score:null,comment:'',oralDate:null,oralResult:null,date:new Date().toISOString()})
   .then(function(){
     setStep(0);
     document.getElementById('form-success').style.display='block';
@@ -927,7 +957,7 @@ function submitForm() {
   }).catch(function(){alert('Erreur lors de l\'envoi.');btn.disabled=false;btn.textContent='Envoyer la candidature';});
 }
 function resetForm() {
-  ['f-steam','f-discord','f-name','f-histoire','f-objectif'].forEach(function(id){document.getElementById(id).value='';});
+  ['f-steam','f-discord','f-age','f-name','f-histoire','f-objectif'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('f-village').value='';
   document.getElementById('form-success').style.display='none';
   document.getElementById('steam-warning-box').style.display='none';
@@ -1022,13 +1052,12 @@ function showResultDisplay(a){
   var cb=document.getElementById('res-comment-box');
   if(a.comment){cb.style.display='block';document.getElementById('res-comment').textContent='"'+a.comment+'"';}else cb.style.display='none';
   // Contenu de la candidature
-  document.getElementById('res-histoire').textContent=a.histoire||'—';
-  document.getElementById('res-objectif').textContent=a.objectif||'—';
+
 }
 function showStaffResultDisplay(a){
   document.getElementById('staff-res-title').textContent='Résultat — '+a.id;
   document.getElementById('staff-res-body').innerHTML=
-    '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(a.steam)+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(a.discord)+'</div></div></div>'+
+    '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(a.steam)+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(a.discord)+'</div></div></div>'+'<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Âge (IRL)</div><div class="detail-value">'+(a.age?esc(a.age)+' ans':'—')+'</div></div>'+
     '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">Personnage</div><div class="detail-value">'+esc(a.name)+'</div></div><div class="detail-row"><div class="detail-label">Village</div><div class="detail-value"><span class="village-badge village-'+a.village+'">'+a.village+'</span></div></div></div>'+
     '<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Histoire</div><div class="detail-value history-text">'+esc(a.histoire)+'</div></div>'+
     '<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Objectif</div><div class="detail-value" style="font-size:12px">'+esc(a.objectif)+'</div></div>'+
@@ -1196,7 +1225,7 @@ function openModal(fid){
   }
   document.getElementById('modal-title').textContent='Candidature — '+a.id;
   document.getElementById('modal-body').innerHTML=
-    '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(a.steam)+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(a.discord)+'</div></div></div>'+
+    '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(a.steam)+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(a.discord)+'</div></div></div>'+'<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Âge (IRL)</div><div class="detail-value">'+(a.age?esc(a.age)+' ans':'—')+'</div></div>'+
     '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">Personnage</div><div class="detail-value">'+esc(a.name)+'</div></div><div class="detail-row"><div class="detail-label">Village</div><div class="detail-value"><span class="village-badge village-'+a.village+'">'+a.village+'</span></div></div></div>'+
     '<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Histoire</div><div class="detail-value history-text">'+esc(a.histoire)+'</div></div>'+
     '<div class="detail-row" style="margin-bottom:14px"><div class="detail-label">Objectif</div><div class="detail-value" style="font-size:12px">'+esc(a.objectif)+'</div></div>'+
@@ -1697,27 +1726,6 @@ function launchConfetti(){
   }
 }
 
-// ── AUDIO ──
-var audioMuted = false;
-var audioStarted = false;
-
-function initAudio() {
-  var audio = document.getElementById('bg-audio');
-  if(!audio) return;
-  audio.volume = 0.2;
-  audio.play().then(function(){
-    audioStarted = true;
-  }).catch(function(){
-    // Autoplay bloqué — on attend la première interaction
-    document.addEventListener('click', function startOnClick(){
-      if(!audioStarted){
-        audio.play().then(function(){ audioStarted = true; });
-      }
-      document.removeEventListener('click', startOnClick);
-    }, {once: true});
-  });
-}
-
 function toggleMute(){
   var audio = document.getElementById('bg-audio');
   var btn = document.getElementById('audio-mute-btn');
@@ -1738,17 +1746,77 @@ function setVolume(val){
   else if(audioMuted){ audio.muted = false; btn.textContent = '🔊'; audioMuted = false; }
 }
 
+// ── QUESTIONS FORMULAIRE ──
+var defaultQuestions = [
+  {id:'label-histoire', label:'Intitulé "Histoire du personnage"', default:'Histoire du personnage', type:'label'},
+  {id:'placeholder-histoire', label:'Placeholder histoire', default:"Décrivez l'histoire et le passé de votre personnage…", type:'placeholder'},
+  {id:'label-objectif', label:'Intitulé "Objectifs du personnage"', default:'Objectifs du personnage', type:'label'},
+  {id:'placeholder-objectif', label:'Placeholder objectifs', default:"Quels sont les buts et aspirations de votre personnage ?", type:'placeholder'},
+  {id:'label-age', label:'Intitulé "Âge IRL"', default:'Votre âge (IRL)', type:'label'},
+  {id:'label-name', label:'Intitulé "Nom du personnage"', default:'Nom et Prénom du personnage', type:'label'},
+  {id:'placeholder-name', label:'Placeholder nom', default:'Ex: Katsuro Yami', type:'placeholder'}
+];
+
+function loadQuestions(){
+  db.collection('config').doc('questions').get().then(function(doc){
+    var saved = doc.exists ? doc.data() : {};
+    renderQuestions(saved);
+  }).catch(function(){ renderQuestions({}); });
+}
+
+function renderQuestions(saved){
+  var list = document.getElementById('questions-list'); if(!list) return;
+  list.innerHTML = defaultQuestions.map(function(q){
+    var val = saved[q.id] !== undefined ? saved[q.id] : q.default;
+    return '<div><label style="font-size:11px;color:rgba(220,230,255,0.5);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px">'+q.label+'</label>'+
+      '<input type="text" id="q-'+q.id+'" value="'+esc(val)+'" style="width:100%;margin-bottom:0"></div>';
+  }).join('');
+}
+
+function saveQuestions(){
+  var data = {};
+  defaultQuestions.forEach(function(q){
+    var el = document.getElementById('q-'+q.id);
+    if(el) data[q.id] = el.value;
+  });
+  db.collection('config').doc('questions').set(data).then(function(){
+    applyQuestions(data);
+    var fb = document.getElementById('questions-feedback');
+    if(fb){ fb.style.display='block'; setTimeout(function(){ fb.style.display='none'; }, 2000); }
+  });
+}
+
+function applyQuestions(data){
+  var map = {
+    'label-histoire': function(v){ var el=document.querySelector('label[for-histoire]')||[...document.querySelectorAll('label')].find(function(l){return l.textContent.includes('Histoire');}); if(el) el.textContent=v; },
+    'placeholder-histoire': function(v){ var el=document.getElementById('f-histoire'); if(el) el.placeholder=v; },
+    'label-objectif': function(v){ var el=[...document.querySelectorAll('label')].find(function(l){return l.textContent.includes('Objectif');}); if(el) el.textContent=v; },
+    'placeholder-objectif': function(v){ var el=document.getElementById('f-objectif'); if(el) el.placeholder=v; },
+    'label-age': function(v){ var el=[...document.querySelectorAll('label')].find(function(l){return l.textContent.includes('âge')||l.textContent.includes('Age');}); if(el) el.textContent=v; },
+    'label-name': function(v){ var el=[...document.querySelectorAll('label')].find(function(l){return l.textContent.includes('Nom et Prénom')||l.textContent.includes('Nom du')}); if(el) el.textContent=v; },
+    'placeholder-name': function(v){ var el=document.getElementById('f-name'); if(el) el.placeholder=v; }
+  };
+  Object.keys(data).forEach(function(k){ if(map[k]) map[k](data[k]); });
+}
+
+function loadAndApplyQuestions(){
+  db.collection('config').doc('questions').get().then(function(doc){
+    if(doc.exists) applyQuestions(doc.data());
+  });
+}
+
 // ── VALIDATION NOM PERSONNAGE ──
 function checkNameFormat(){
   var input = document.getElementById('f-name');
   var nfe = document.getElementById('name-format-error');
+  var ne = document.getElementById('name-error');
   if(!input) return;
-  var words = input.value.trim().split(/\s+/).filter(function(w){ return w.length > 0; });
-  if(input.value.trim().length === 0){
-    input.style.borderColor='';
-    if(nfe) nfe.style.display='none';
-    return;
-  }
+  var val = input.value.trim();
+  // Cacher l'erreur nom interdit si le nom a changé
+  if(ne) ne.style.display='none';
+  input.style.borderColor='';
+  if(val.length === 0){ if(nfe) nfe.style.display='none'; return; }
+  var words = val.split(/\s+/).filter(function(w){ return w.length > 0; });
   if(words.length < 2){
     input.style.borderColor='rgba(192,57,43,0.6)';
     if(nfe) nfe.style.display='block';
@@ -1842,7 +1910,7 @@ if (window.__discordHash) {
   checkDiscordCallback();
 }
 // Lancer la musique
-window.addEventListener('load', function(){ initAudio(); });
+
 </script>
 
 <div id="dev-btns" style="position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:6px;z-index:999">
@@ -1850,14 +1918,5 @@ window.addEventListener('load', function(){ initAudio(); });
   <button onclick="startStaff('douanierplus','Dev')" style="background:rgba(200,205,255,0.15);border:1px solid rgba(200,205,255,0.35);border-radius:8px;color:var(--gold);font-size:11px;padding:7px 13px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(200,205,255,0.28)'" onmouseout="this.style.background='rgba(200,205,255,0.15)'">⚙ Responsable — Dev</button>
   <button onclick="showLoginScreen()" style="background:transparent;border:1px solid rgba(200,205,255,0.18);border-radius:8px;color:rgba(200,205,255,0.45);font-size:10px;padding:5px 11px;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px" onmouseover="this.style.color='var(--gold)';this.style.borderColor='rgba(200,205,255,0.4)'" onmouseout="this.style.color='rgba(200,205,255,0.45)';this.style.borderColor='rgba(200,205,255,0.18)'">Accès Staff</button>
 </div>
-<!-- AUDIO PLAYER -->
-<div id="audio-player">
-  <button id="audio-mute-btn" onclick="toggleMute()" title="Couper/rétablir le son">🔊</button>
-  <input type="range" id="audio-volume" min="0" max="100" value="20" oninput="setVolume(this.value)" title="Volume">
-</div>
-<audio id="bg-audio" loop preload="auto">
-  <source src="https://raw.githubusercontent.com/fsc-server/fsc-douane/main/sadness_and_sorrow.mp3" type="audio/mpeg">
-</audio>
-
 </body>
 </html>
