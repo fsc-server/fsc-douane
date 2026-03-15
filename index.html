@@ -880,7 +880,7 @@ function renderList(){
     '<div><div class="app-name">'+esc(a.name)+'</div><div class="app-meta">'+esc(a.discord)+'</div></div>'+
     '<span class="village-badge village-'+a.village+'">'+a.village+'</span>'+
     '<span class="status-badge status-'+a.status+'">'+statusLabel(a.status)+'</span>'+
-    (a.score!=null?'<span style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--gold)">'+a.score+'/20</span>':'<span style="font-size:10px;color:rgba(245,240,232,0.22)">—/20</span>')+
+    (a.score!=null?'<span style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--gold)">'+a.score+'/10</span>':'<span style="font-size:10px;color:rgba(245,240,232,0.22)">—/10</span>')+
     '<div class="app-meta">'+(a.date?new Date(a.date).toLocaleDateString('fr-FR'):'—')+'</div></div>');}).join('');
 }
 function openModal(fid){
@@ -1087,7 +1087,7 @@ function renderArchives() {
     '<div><div class="app-name">'+esc(a.name)+'</div><div class="app-meta">'+esc(a.discord)+'</div></div>'+
     '<span class="village-badge village-'+a.village+'">'+a.village+'</span>'+
     '<span class="status-badge status-'+a.status+'">'+statusLabel(a.status)+'</span>'+
-    (a.score!=null?'<span style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--gold)">'+a.score+'/20</span>':'<span style="font-size:10px;color:rgba(245,240,232,0.22)">—/20</span>')+
+    (a.score!=null?'<span style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--gold)">'+a.score+'/10</span>':'<span style="font-size:10px;color:rgba(245,240,232,0.22)">—/10</span>')+
     '<div class="app-meta">'+(a.date?new Date(a.date).toLocaleDateString('fr-FR'):'—')+'</div></div>');}).join('');
 }
 
