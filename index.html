@@ -740,8 +740,8 @@ function showResultDisplay(a){
   document.getElementById('res-village').innerHTML='<span class="village-badge village-'+a.village+'">'+a.village+'</span>';
   var stxt=a.status==='pending'?"En attente d'évaluation":a.status==='accepted'?'Acceptée ✓':'Refusée';
   document.getElementById('res-status').innerHTML='<span class="status-badge status-'+a.status+'" style="font-size:12px;padding:4px 13px">'+stxt+'</span>';
-  document.getElementById('res-score').textContent=a.score!=null?a.score+'/20':'—';
-  document.getElementById('res-grade').textContent=a.score!=null?(a.score>=16?'Excellent':a.score>=12?'Bon':a.score>=8?'Passable':'Insuffisant'):'';
+  document.getElementById('res-score').textContent=a.score!=null?a.score+'/10':'—';
+  document.getElementById('res-grade').textContent=a.score!=null?(a.score>=9?'Excellent':a.score>=7?'Bon':a.score>=5?'Passable':'Insuffisant'):'';
   // Message félicitation si accepté
   var acceptedMsg=document.getElementById('res-accepted-msg');
   if(acceptedMsg) acceptedMsg.style.display=a.status==='accepted'?'block':'none';
@@ -763,7 +763,7 @@ function showStaffResultDisplay(a){
     '<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Histoire</div><div class="detail-value history-text">'+esc(a.histoire)+'</div></div>'+
     '<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Objectif</div><div class="detail-value" style="font-size:12px">'+esc(a.objectif)+'</div></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><div class="result-box"><div class="detail-label" style="margin-bottom:4px">Statut</div><span class="status-badge status-'+a.status+'">'+statusLabel(a.status)+'</span></div>'+
-    '<div class="result-box"><div class="detail-label" style="margin-bottom:4px">Note</div><div style="font-family:\'Cinzel\',serif;font-size:22px;color:var(--gold)">'+(a.score!=null?a.score+'/20':'—')+'</div></div></div>'+
+    '<div class="result-box"><div class="detail-label" style="margin-bottom:4px">Note</div><div style="font-family:\'Cinzel\',serif;font-size:22px;color:var(--gold)">'+(a.score!=null?a.score+'/10':'—')+'</div></div></div>'+
     (a.oralDate?'<div class="oral-box" style="margin-top:9px"><div class="oral-label">Oral WL — '+new Date(a.oralDate).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})+'</div>'+(a.oralResult?'<div style="margin-top:5px;font-size:12px;color:'+(a.oralResult==='pass'?'#5cb98a':'#e07060')+'">'+(a.oralResult==='pass'?'Réussi ✓':'Non réussi ✕')+'</div>':'')+'</div>':'')+
     (a.comment?'<div class="detail-row" style="margin-top:9px"><div class="detail-label">Commentaire</div><div class="detail-value" style="font-style:italic;opacity:0.6;font-size:12px">"'+esc(a.comment)+'"</div></div>':'');
 }
@@ -812,8 +812,8 @@ function showTraiterCurrent() {
     '<hr class="sep">' +
     '<div class="card-title" style="font-size:12px;margin-bottom:10px">Décision</div>' +
     '<div class="field-row" style="align-items:flex-end;margin-bottom:10px">' +
-      '<div><label>Note (/20)</label><input type="number" id="t-score" min="0" max="20" placeholder="—" style="width:80px;margin-bottom:0"></div>' +
-      '<div><label>Commentaire</label><input type="text" id="t-comment" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div>' +
+      '<div><label>Note (/10)</label><input type="number" id="t-score" min="0" max="10" placeholder="—" style="width:80px;margin-bottom:0"></div>' +
+      '<div><label>Commentaire <span style="font-size:10px;color:rgba(245,240,232,0.35)">(optionnel)</span></label><input type="text" id="t-comment" value="Félicitations, bonne candidature !" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div>' +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
       '<button class="btn btn-success" onclick="decideTraiter(\''+a.firestoreId+'\',\'accepted\')">✓ Accepter</button>' +
@@ -888,8 +888,8 @@ function openModal(fid){
     '<div class="detail-row" style="margin-bottom:14px"><div class="detail-label">Objectif</div><div class="detail-value" style="font-size:12px">'+esc(a.objectif)+'</div></div>'+
     (canEdit?'<hr class="sep"><div class="card-title" style="font-size:12px;margin-bottom:10px">Décision</div>'+
       '<div class="field-row" style="align-items:flex-end;margin-bottom:9px">'+
-      '<div><label>Note (/20)</label><input type="number" id="m-score" min="0" max="20" value="'+(a.score!=null?a.score:'')+'" placeholder="—" style="width:80px;margin-bottom:0"></div>'+
-      '<div><label>Commentaire</label><input type="text" id="m-comment" value="'+esc(a.comment||'')+'" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div></div>'+
+      '<div><label>Note (/10)</label><input type="number" id="m-score" min="0" max="10" value="'+(a.score!=null?a.score:'')+'" placeholder="—" style="width:80px;margin-bottom:0"></div>'+
+      '<div><label>Commentaire <span style="font-size:10px;color:rgba(245,240,232,0.35)">(optionnel)</span></label><input type="text" id="m-comment" value="'+(a.comment||'Félicitations, bonne candidature !')+'" placeholder="Retour pour le candidat…" style="margin-bottom:0"></div></div>'+
       '<div style="display:flex;gap:7px;flex-wrap:wrap">'+
       '<button class="btn btn-success btn-sm" onclick="decide(\''+fid+'\',\'accepted\')">✓ Accepter</button>'+
       '<button class="btn btn-danger btn-sm" onclick="decide(\''+fid+'\',\'refused\')">✕ Refuser</button>'+
@@ -1002,7 +1002,7 @@ function renderStats(){
   document.getElementById('stats-grid').innerHTML=[
     {num:total,label:'Candidatures'},{num:accepted,label:'Acceptées'},{num:refused,label:'Refusées'},{num:pending,label:'En attente'},
     {num:withOral,label:'Oraux planifiés'},{num:oralPass,label:'Oraux réussis'},{num:oralFail,label:'Oraux échoués'},
-    {num:avg!=='—'?avg+'/20':'—',label:'Note moyenne'},{num:total?Math.round(accepted/total*100)+'%':'—',label:"Taux d'acceptation"},
+    {num:avg!=='—'?avg+'/10':'—',label:'Note moyenne'},{num:total?Math.round(accepted/total*100)+'%':'—',label:"Taux d'acceptation"},
   ].map(function(s){return '<div class="stat-card"><div class="stat-num">'+s.num+'</div><div class="stat-label">'+s.label+'</div></div>';}).join('');
   var ko=apps.filter(function(a){return a.village==='Konoha';}).length;
   var su=apps.filter(function(a){return a.village==='Suna';}).length;
@@ -1031,7 +1031,7 @@ function renderStats(){
     '<tr><td><span style="font-family:\'Cinzel\',serif;font-size:10px;color:var(--gold)">'+esc(a.id)+'</span></td>'+
     '<td>'+esc(a.name)+'</td><td><span class="village-badge village-'+a.village+'">'+a.village+'</span></td>'+
     '<td><span class="status-badge status-'+a.status+'">'+statusLabel(a.status)+'</span></td>'+
-    '<td>'+(a.score!=null?a.score+'/20':'—')+'</td>'+
+    '<td>'+(a.score!=null?a.score+'/10':'—')+'</td>'+
     '<td style="color:rgba(245,240,232,0.32)">'+(a.date?new Date(a.date).toLocaleDateString('fr-FR'):'—')+'</td></tr>');}).join('');
 
   // ── Graphique hebdomadaire (8 dernières semaines) ──
