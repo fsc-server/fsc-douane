@@ -152,6 +152,9 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
 .sort-btn{background:transparent;border:1px solid rgba(200,205,255,0.15);border-radius:5px;color:rgba(220,230,255,0.45);font-size:10px;padding:3px 9px;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;}
 .sort-btn:hover{color:var(--gold);border-color:rgba(200,205,255,0.35);}
 .sort-btn.active-sort{color:var(--gold);border-color:var(--gold);background:rgba(200,205,255,0.08);}
+/* ── CONFETTI ── */
+@keyframes confetti-fall{0%{transform:translateY(-10px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+.confetti-piece{position:fixed;width:8px;height:8px;top:-10px;z-index:9999;animation:confetti-fall linear forwards;pointer-events:none;}
 /* ── CANDIDATE OVERLAY ── */
 #candidate-overlay{display:none;position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at 50% 20%,#0d1f3c,#070d1a);overflow-y:auto;}
 #candidate-overlay.open{display:block;}
@@ -239,7 +242,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
           <div class="step-line"></div>
           <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Confirmation</div></div>
         </div>
-        <div style="margin-bottom:18px">
+        <div id="form-progress-box" style="margin-bottom:18px">
           <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(220,230,255,0.35);margin-bottom:5px">
             <span id="step-label-txt">Étape 1 sur 3</span>
             <span id="step-pct-txt">33%</span>
@@ -266,7 +269,7 @@ td{padding:8px 9px;color:rgba(220,230,255,0.68);border-bottom:1px solid rgba(0,0
           <div class="card">
             <div class="card-title">Votre personnage</div>
             <div class="field-row">
-              <div><label>Nom du personnage</label><input type="text" id="f-name" placeholder="Ex: Katsuro Yami"></div>
+              <div><label>Nom du personnage</label><input type="text" id="f-name" placeholder="Ex: Katsuro Yami"><div id="name-error" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);border-radius:6px;font-size:12px;color:#e07060">⛔ Ce nom est trop proche d'un personnage principal de Naruto. Choisissez un nom original pour votre personnage.</div></div>
               <div><label>Village souhaité</label>
                 <select id="f-village"><option value="">— Choisir —</option><option value="Konoha">Konoha — Village Caché de la Feuille 🍃</option><option value="Suna">Suna — Village Caché du Sable 🏜️</option><option value="Kumo">Kumo — Village Caché des Nuages ☁️</option></select>
               </div>
@@ -773,7 +776,15 @@ function goStep(n) {
     var forbidden = ['naruto','sasuke','sakura','kakashi','itachi','madara','obito','tobi','minato','kushina','jiraiya','tsunade','orochimaru','nagato','pain','konan','neji','hinata','hyuga','lee','rock lee','tenten','shikamaru','nara','ino','yamanaka','choji','akimichi','kiba','inuzuka','shino','aburame','kurenai','asuma','sarutobi','hiruzen','hashirama','tobirama','senju','uchiha','uzumaki','gaara','temari','kankuro','rasa','killer bee','raikage','mei','mizukage','onoki','tsunade','danzo','zetsu','kisame','hidan','kakuzu','deidara','sasori','konan','yamato','sai','kabuto','rin','obito'];
     var name = v('f-name').toLowerCase().trim();
     var isForbidden = forbidden.some(function(f){ return name === f || name.includes(f); });
-    if(isForbidden){alert('⛔ Ce nom de personnage est trop proche d\'un personnage principal de Naruto.\nChoisissez un nom original pour votre personnage.');return;}
+    if(isForbidden){
+      var ne=document.getElementById('name-error'); if(ne) ne.style.display='block';
+      document.getElementById('f-name').style.borderColor='rgba(192,57,43,0.6)';
+      document.getElementById('f-name').focus();
+      return;
+    }
+    // Cacher l'erreur si tout va bien
+    var ne=document.getElementById('name-error'); if(ne) ne.style.display='none';
+    document.getElementById('f-name').style.borderColor='';
     checkSteamAndShowRecap(); return;
   }
   setStep(n);
@@ -811,6 +822,16 @@ function setStep(n){
     var el=document.getElementById(s); el.className='step';
     if(i+1<n)el.classList.add('done'); else if(i+1===n)el.classList.add('current');
   });
+  // Cacher la barre si étape 0 (succès)
+  var progressBox = document.getElementById('form-progress-box');
+  var stepInd = document.querySelector('.step-indicator');
+  if(n===0){
+    if(progressBox) progressBox.style.display='none';
+    if(stepInd) stepInd.style.display='none';
+    return;
+  }
+  if(progressBox) progressBox.style.display='block';
+  if(stepInd) stepInd.style.display='flex';
   var pct=Math.round(n/3*100);
   var bar=document.getElementById('step-progress-bar');
   var lbl=document.getElementById('step-label-txt');
@@ -835,6 +856,7 @@ function submitForm() {
   .then(function(){
     setStep(0);
     document.getElementById('form-success').style.display='block';
+    launchConfetti();
     document.getElementById('success-id').textContent=id;
   }).catch(function(){alert('Erreur lors de l\'envoi.');btn.disabled=false;btn.textContent='Envoyer la candidature';});
 }
@@ -1481,6 +1503,23 @@ function checkMaintenanceMode(cb){
       cb(true, doc.data().message||'Les candidatures sont temporairement fermées.');
     } else { cb(false,''); }
   }).catch(function(){ cb(false,''); });
+}
+
+// ── CONFETTI ──
+function launchConfetti(){
+  var colors=['#ffffff','#e8e8ff','#5865F2','#6699ee','#e07060','#c0392b'];
+  for(var i=0;i<80;i++){
+    (function(i){
+      setTimeout(function(){
+        var el=document.createElement('div');
+        el.className='confetti-piece';
+        var size=(Math.random()*8+4)+'px';
+        el.style.cssText='left:'+Math.random()*100+'vw;width:'+size+';height:'+size+';background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(Math.random()>0.5?'50%':'2px')+';animation-duration:'+(Math.random()*2+1.5)+'s;animation-delay:'+(Math.random()*0.8)+'s;opacity:1;';
+        document.body.appendChild(el);
+        setTimeout(function(){el.remove();},3500);
+      }, i*20);
+    })(i);
+  }
 }
 
 // ── HELPERS ──
