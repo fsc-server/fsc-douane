@@ -1013,13 +1013,18 @@ function renderList(){
 function openModal(fid){
   var a=allApps.find(function(x){return x.firestoreId===fid;});if(!a)return;
   var canEdit=currentRole==='douanier'||currentRole==='douanierplus';
+  var histoHTML='';
+  if(a.treatedBy){
+    var dt=a.treatedAt?new Date(a.treatedAt).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):'';
+    histoHTML='<div class="detail-row" style="margin-bottom:11px;padding:8px 10px;background:rgba(200,205,255,0.06);border-radius:6px;border:1px solid rgba(200,205,255,0.15)"><div class="detail-label" style="margin-bottom:4px">📋 Historique</div><div style="font-size:11px;color:rgba(220,230,255,0.55);line-height:1.7">Traité par <strong style="color:var(--gold)">'+esc(a.treatedBy)+'</strong>'+(dt?' le '+dt:'')+' — Décision : <span class="status-badge status-'+a.status+'" style="font-size:10px;padding:2px 8px">'+statusLabel(a.status)+'</span></div></div>';
+  }
   document.getElementById('modal-title').textContent='Candidature — '+a.id;
   document.getElementById('modal-body').innerHTML=
     '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">SteamID64</div><div class="detail-value">'+esc(a.steam)+'</div></div><div class="detail-row"><div class="detail-label">Discord</div><div class="detail-value">'+esc(a.discord)+'</div></div></div>'+
     '<div class="field-row" style="margin-bottom:11px"><div class="detail-row"><div class="detail-label">Personnage</div><div class="detail-value">'+esc(a.name)+'</div></div><div class="detail-row"><div class="detail-label">Village</div><div class="detail-value"><span class="village-badge village-'+a.village+'">'+a.village+'</span></div></div></div>'+
     '<div class="detail-row" style="margin-bottom:11px"><div class="detail-label">Histoire</div><div class="detail-value history-text">'+esc(a.histoire)+'</div></div>'+
     '<div class="detail-row" style="margin-bottom:14px"><div class="detail-label">Objectif</div><div class="detail-value" style="font-size:12px">'+esc(a.objectif)+'</div></div>'+
-    (a.treatedBy?'<div class="detail-row" style="margin-bottom:11px;padding:8px 10px;background:rgba(200,205,255,0.06);border-radius:6px;border:1px solid rgba(200,205,255,0.15)"><div class="detail-label" style="margin-bottom:4px">📋 Historique</div><div style="font-size:11px;color:rgba(220,230,255,0.55);line-height:1.7">Traité par <strong style="color:var(--gold)">'+esc(a.treatedBy)+'</strong>'+(a.treatedAt?' le '+new Date(a.treatedAt).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):'')+' — Décision : <span class="status-badge status-'+a.status+'" style="font-size:10px;padding:2px 8px">'+statusLabel(a.status)+'</span></div></div>':'')+'
+    histoHTML+
     (canEdit?'<hr class="sep"><div class="card-title" style="font-size:12px;margin-bottom:10px">Décision</div>'+
       '<div class="field-row" style="align-items:flex-end;margin-bottom:9px">'+
       '<div><label>Note (/10)</label><input type="number" id="m-score" min="0" max="10" value="'+(a.score!=null?a.score:'')+'" placeholder="—" style="width:80px;margin-bottom:0"></div>'+
